@@ -1,5 +1,5 @@
 python-telegram-bot==13.7
 instaloader
 psycopg2-binary
-Flask
+Flask==2.0.2
 gunicorn
