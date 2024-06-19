@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, Dispatcher
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, dispatcher
 from flask import Flask, request
 import instaloader
 import os
