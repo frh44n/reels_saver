@@ -1,0 +1,5 @@
+python-telegram-bot
+instaloader
+psycopg2-binary
+Flask
+gunicorn
