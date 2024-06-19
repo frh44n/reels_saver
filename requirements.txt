@@ -3,3 +3,4 @@ instaloader
 psycopg2-binary
 Flask==2.0.2
 gunicorn
+werkzeug==2.0.2
