@@ -1,11 +1,11 @@
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, dispatcher
+from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext.dispatcher import Dispatcher
 from flask import Flask, request
 import instaloader
 import os
 from database import init_db, get_or_create_user, increment_video_count
 from config import Config
-from telegram import Bot
 
 # Initialize the database
 init_db()
