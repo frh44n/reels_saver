@@ -1,41 +1,24 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from config import Config
+# database.py
 
-def get_db_connection():
-    conn = psycopg2.connect(Config.DATABASE_URL, cursor_factory=RealDictCursor)
-    return conn
+import psycopg2  # Example for PostgreSQL database
+from config import Config  # Import Config only when needed
 
+# Function to initialize database connection
 def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        chat_id BIGINT PRIMARY KEY,
-        video_count INTEGER DEFAULT 0
-    );
-    """)
-    conn.commit()
-    cur.close()
+    conn = psycopg2.connect(Config.DATABASE_URL)
+    # Initialize database schema or perform other setup tasks
     conn.close()
 
+# Function to get or create user in the database
 def get_or_create_user(chat_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE chat_id = %s;", (chat_id,))
-    user = cur.fetchone()
-    if not user:
-        cur.execute("INSERT INTO users (chat_id, video_count) VALUES (%s, 0) RETURNING *;", (chat_id,))
-        user = cur.fetchone()
-    conn.commit()
-    cur.close()
+    conn = psycopg2.connect(Config.DATABASE_URL)
+    # Implement logic to get or create user based on chat_id
     conn.close()
-    return user
 
+# Function to increment video count for a user
 def increment_video_count(chat_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("UPDATE users SET video_count = video_count + 1 WHERE chat_id = %s;", (chat_id,))
-    conn.commit()
-    cur.close()
+    conn = psycopg2.connect(Config.DATABASE_URL)
+    # Implement logic to increment video count for the user identified by chat_id
     conn.close()
+
+# Other database-related functions or classes as needed
