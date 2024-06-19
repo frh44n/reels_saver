@@ -1,11 +1,12 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Dispatcher
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, Dispatcher
 from telegram.ext.callbackcontext import CallbackContext
 from flask import Flask, request
 import instaloader
 import os
 from database import init_db, get_or_create_user, increment_video_count
 from config import Config
+from telegram import Bot
 
 # Initialize the database
 init_db()
@@ -16,8 +17,15 @@ L = instaloader.Instaloader()
 # Initialize Flask app
 app = Flask(__name__)
 
+# Initialize Bot and Dispatcher
+bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
+dispatcher = Dispatcher(bot, None, use_context=True)
+
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Welcome! Send me reels link to download it.")
+    update.message.reply_text(
+        "Welcome to Instagram Reels Downloader Bot!\n"
+        "Please send me the link to the Instagram reel you want to download."
+    )
 
 def download_reel(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
@@ -50,26 +58,15 @@ def download_reel(update: Update, context: CallbackContext):
     except Exception as e:
         update.message.reply_text(f"Failed to download reel: {e}")
 
-def main():
-    # Set up Telegram updater and dispatcher
-    updater = Updater(Config.TELEGRAM_BOT_TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
-
-    # Set webhook
-    updater.start_webhook(listen="0.0.0.0", port=Config.PORT, url_path=Config.TELEGRAM_BOT_TOKEN)
-    updater.bot.set_webhook(Config.WEBHOOK_URL + Config.TELEGRAM_BOT_TOKEN)
-
-    # Start Flask app
-    app.run(host='0.0.0.0', port=Config.PORT)
+# Add handlers
+dispatcher.add_handler(CommandHandler("start", start))
+dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_reel))
 
 @app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), updater.bot)
+    update = Update.de_json(request.get_json(force=True), bot)
     dispatcher.process_update(update)
     return 'ok'
 
 if __name__ == '__main__':
-    main()
+    app.run(host='0.0.0.0', port=Config.PORT)
