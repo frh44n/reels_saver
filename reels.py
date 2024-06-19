@@ -1,6 +1,6 @@
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, Dispatcher
-from telegram.ext.callbackcontext import CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext.dispatcher import Dispatcher
 from flask import Flask, request
 import instaloader
 import os
@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # Initialize Bot and Dispatcher
 bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
-dispatcher = Dispatcher(bot, None, use_context=True)
+dispatcher = Dispatcher(bot, None, workers=0, use_context=True)  # Note: workers=0 for webhook mode
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
@@ -60,7 +60,7 @@ def download_reel(update: Update, context: CallbackContext):
 
 # Add handlers
 dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_reel))
+dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
 
 @app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
 def webhook():
