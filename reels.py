@@ -1,6 +1,5 @@
 from telegram import Update, Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-from telegram.ext.dispatcher import Dispatcher
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
 from flask import Flask, request
 import instaloader
 import os
@@ -18,7 +17,7 @@ app = Flask(__name__)
 
 # Initialize Bot and Dispatcher
 bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
-dispatcher = Dispatcher(bot, None, workers=0, use_context=True)  # Note: workers=0 for webhook mode
+dispatcher = Dispatcher(bot, None, workers=4, use_context=True)  # Use workers > 0 for webhook mode
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(
