@@ -4,7 +4,7 @@ from flask import Flask, request
 import instaloader
 import os
 import logging
-from database import init_db, get_or_create_user, increment_video_count
+from database import init_db, get_or_create_user, increment_video_count, create_custom_table
 from config import Config
 
 # Initialize logging
@@ -64,8 +64,21 @@ def download_reel(update: Update, context: CallbackContext):
         logger.error(f"Failed to download reel: {e}")
         update.message.reply_text(f"Failed to download reel: {e}")
 
+def create_table_command(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    if chat_id in Config.AUTHORIZED_USERS:
+        try:
+            create_custom_table()
+            update.message.reply_text("Table created successfully!")
+        except Exception as e:
+            logger.error(f"Failed to create table: {e}")
+            update.message.reply_text(f"Failed to create table: {e}")
+    else:
+        update.message.reply_text("You are not authorized to execute this command.")
+
 # Add handlers
 dispatcher.add_handler(CommandHandler("start", start))
+dispatcher.add_handler(CommandHandler("createtable", create_table_command))
 dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
 
 @app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
@@ -76,7 +89,7 @@ def webhook():
 
 if __name__ == '__main__':
     # Set webhook when starting the application
-    WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
+    WEBHOOK_URL = f"https://yourdomain.com/{Config.TELEGRAM_BOT_TOKEN}"
     bot.set_webhook(url=WEBHOOK_URL)
 
     app.run(host='0.0.0.0', port=Config.PORT)
