@@ -9,8 +9,4 @@ class Config:
 # Add other configuration variables as needed
 # config.py
 
-class Config:
-    TELEGRAM_BOT_TOKEN = 'your_telegram_bot_token_here'
-    DATABASE_URL = 'your_database_url_here'
-    PORT = 5000  # Example port number for Flask app
-      # Replace with actual authorized user IDs
+
