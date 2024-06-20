@@ -89,7 +89,7 @@ def webhook():
 
 if __name__ == '__main__':
     # Set webhook when starting the application
-    WEBHOOK_URL = f"https://yourdomain.com/{Config.TELEGRAM_BOT_TOKEN}"
+    WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
     bot.set_webhook(url=WEBHOOK_URL)
 
     app.run(host='0.0.0.0', port=Config.PORT)
