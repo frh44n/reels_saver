@@ -3,8 +3,13 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from flask import Flask, request
 import instaloader
 import os
+import logging
 from database import init_db, get_or_create_user, increment_video_count
 from config import Config
+
+# Initialize logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Initialize the database
 init_db()
@@ -20,12 +25,14 @@ bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
 dispatcher = Dispatcher(bot, None, workers=4, use_context=True)  # Use workers > 0 for webhook mode
 
 def start(update: Update, context: CallbackContext):
+    logger.info(f"Received /start command from {update.message.chat_id}")
     update.message.reply_text(
         "Welcome to Instagram Reels Downloader Bot!\n"
         "Please send me the link to the Instagram reel you want to download."
     )
 
 def download_reel(update: Update, context: CallbackContext):
+    logger.info(f"Received a reel download request from {update.message.chat_id} with URL: {update.message.text}")
     chat_id = update.message.chat_id
     url = update.message.text
 
@@ -54,6 +61,7 @@ def download_reel(update: Update, context: CallbackContext):
         increment_video_count(chat_id)
 
     except Exception as e:
+        logger.error(f"Failed to download reel: {e}")
         update.message.reply_text(f"Failed to download reel: {e}")
 
 # Add handlers
@@ -67,4 +75,8 @@ def webhook():
     return 'ok'
 
 if __name__ == '__main__':
+    # Set webhook when starting the application
+    WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
+    bot.set_webhook(url=WEBHOOK_URL)
+
     app.run(host='0.0.0.0', port=Config.PORT)
