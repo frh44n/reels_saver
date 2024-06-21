@@ -1,3 +1,4 @@
+SQLAlchemy
 python-telegram-bot==13.7
 instaloader
 psycopg2-binary
