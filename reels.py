@@ -44,10 +44,14 @@ def download_reel(update: Update, context: CallbackContext):
         L.download_post(L.check_profile_id(post_id), target='reels')
 
         # Find the downloaded video file
+        video_path = None
         for file in os.listdir('reels'):
             if file.endswith('.mp4'):
                 video_path = os.path.join('reels', file)
                 break
+
+        if video_path is None:
+            raise Exception("Failed to find the downloaded video file.")
 
         # Send the video to the user
         context.bot.send_video(chat_id=chat_id, video=open(video_path, 'rb'))
@@ -87,9 +91,18 @@ def webhook():
     dispatcher.process_update(update)
     return 'ok'
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return 'ok'
+
 if __name__ == '__main__':
     # Set webhook when starting the application
     WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
-    bot.set_webhook(url=WEBHOOK_URL)
+    logger.info(f"Setting webhook: {WEBHOOK_URL}")
+    success = bot.set_webhook(url=WEBHOOK_URL)
+    if success:
+        logger.info("Webhook set successfully")
+    else:
+        logger.error("Failed to set webhook")
 
     app.run(host='0.0.0.0', port=Config.PORT)
