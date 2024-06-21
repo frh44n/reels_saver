@@ -1,7 +1,5 @@
-# bot.py
-
 from telegram import Update, Bot
-from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
 from flask import Flask, request
 import instaloader
 import os
@@ -16,23 +14,16 @@ logger = logging.getLogger(__name__)
 # Initialize the database
 init_db()
 
-# Set up Instaloader with login session
+# Set up Instaloader
 L = instaloader.Instaloader()
 
 def login_instagram():
-    session_dir = '/tmp/.instaloader-render'
-    session_file = os.path.join(session_dir, f'session-{Config.INSTAGRAM_USERNAME}')
-
-    # Create the directory if it doesn't exist
-    os.makedirs(session_dir, exist_ok=True)
-
+    session_file = f"/tmp/.instaloader-{Config.INSTAGRAM_USERNAME}"
     try:
-        # Try to load the session from the file
         L.load_session_from_file(Config.INSTAGRAM_USERNAME, session_file)
-        logger.info("Loaded session from file.")
+        logger.info("Loaded session from file")
     except FileNotFoundError:
-        logger.info("Session file not found. Logging in.")
-        # Login and save session to the file
+        logger.info("Session file not found, logging in")
         L.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
         L.save_session_to_file(session_file)
 
@@ -62,18 +53,13 @@ def download_reel(update: Update, context: CallbackContext):
         post_id = url.split("/")[-2]
 
         # Download the Instagram reel
-        post = instaloader.Post.from_shortcode(L.context, post_id)
-        L.download_post(post, target='reels')
+        L.download_post(L.check_profile_id(post_id), target='reels')
 
         # Find the downloaded video file
-        video_path = None
         for file in os.listdir('reels'):
             if file.endswith('.mp4'):
                 video_path = os.path.join('reels', file)
                 break
-
-        if video_path is None:
-            raise Exception("Failed to find the downloaded video file.")
 
         # Send the video to the user
         context.bot.send_video(chat_id=chat_id, video=open(video_path, 'rb'))
@@ -102,20 +88,23 @@ def create_table_command(update: Update, context: CallbackContext):
     else:
         update.message.reply_text("You are not authorized to execute this command.")
 
-def list_user_command(update: Update, context: CallbackContext):
-    try:
-        users = get_all_users()
-        response = "User ID - Video Count\n"
-        response += "\n".join([f"{user.chat_id} - {user.video_count}" for user in users])
-        update.message.reply_text(response)
-    except Exception as e:
-        logger.error(f"Failed to list users: {e}")
-        update.message.reply_text(f"Failed to list users: {e}")
+def list_users_command(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    if chat_id in Config.AUTHORIZED_USERS:
+        try:
+            users = get_all_users()
+            user_list = "\n".join([f"User ID: {user[0]}, Downloads: {user[1]}" for user in users])
+            update.message.reply_text(f"Users:\n{user_list}")
+        except Exception as e:
+            logger.error(f"Failed to list users: {e}")
+            update.message.reply_text(f"Failed to list users: {e}")
+    else:
+        update.message.reply_text("You are not authorized to execute this command.")
 
 # Add handlers
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("createtable", create_table_command))
-dispatcher.add_handler(CommandHandler("list_user", list_user_command))
+dispatcher.add_handler(CommandHandler("list_users", list_users_command))
 dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
 
 @app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
@@ -124,18 +113,9 @@ def webhook():
     dispatcher.process_update(update)
     return 'ok'
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    return 'ok'
-
 if __name__ == '__main__':
     # Set webhook when starting the application
     WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
-    logger.info(f"Setting webhook: {WEBHOOK_URL}")
-    success = bot.set_webhook(url=WEBHOOK_URL)
-    if success:
-        logger.info("Webhook set successfully")
-    else:
-        logger.error("Failed to set webhook")
+    bot.set_webhook(url=WEBHOOK_URL)
 
     app.run(host='0.0.0.0', port=Config.PORT)
