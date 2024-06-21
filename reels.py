@@ -18,13 +18,21 @@ init_db()
 L = instaloader.Instaloader()
 
 def login_instagram():
+    session_dir = '/tmp/.instaloader-render'
+    session_file = os.path.join(session_dir, f'session-{Config.INSTAGRAM_USERNAME}')
+
+    # Create the directory if it doesn't exist
+    os.makedirs(session_dir, exist_ok=True)
+
     try:
-        L.load_session_from_file(Config.INSTAGRAM_USERNAME)
+        # Try to load the session from the file
+        L.load_session_from_file(Config.INSTAGRAM_USERNAME, session_file)
         logger.info("Loaded session from file.")
     except FileNotFoundError:
         logger.info("Session file not found. Logging in.")
+        # Login and save session to the file
         L.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
-        L.save_session_to_file()
+        L.save_session_to_file(session_file)
 
 login_instagram()
 
