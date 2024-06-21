@@ -1,10 +1,12 @@
+# bot.py
+
 from telegram import Update, Bot
 from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
 from flask import Flask, request
 import instaloader
 import os
 import logging
-from database import init_db, get_or_create_user, increment_video_count, create_custom_table
+from database import init_db, get_or_create_user, increment_video_count, create_custom_table, get_all_users
 from config import Config
 
 # Initialize logging
@@ -100,9 +102,20 @@ def create_table_command(update: Update, context: CallbackContext):
     else:
         update.message.reply_text("You are not authorized to execute this command.")
 
+def list_user_command(update: Update, context: CallbackContext):
+    try:
+        users = get_all_users()
+        response = "User ID - Video Count\n"
+        response += "\n".join([f"{user.chat_id} - {user.video_count}" for user in users])
+        update.message.reply_text(response)
+    except Exception as e:
+        logger.error(f"Failed to list users: {e}")
+        update.message.reply_text(f"Failed to list users: {e}")
+
 # Add handlers
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("createtable", create_table_command))
+dispatcher.add_handler(CommandHandler("list_user", list_user_command))
 dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
 
 @app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
