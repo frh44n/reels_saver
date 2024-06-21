@@ -1,5 +1,5 @@
 from telegram import Update, Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
+from telegram.ext import CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
 from flask import Flask, request
 import instaloader
 import os
@@ -14,8 +14,19 @@ logger = logging.getLogger(__name__)
 # Initialize the database
 init_db()
 
-# Set up Instaloader
+# Set up Instaloader with login session
 L = instaloader.Instaloader()
+
+def login_instagram():
+    try:
+        L.load_session_from_file(Config.INSTAGRAM_USERNAME)
+        logger.info("Loaded session from file.")
+    except FileNotFoundError:
+        logger.info("Session file not found. Logging in.")
+        L.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
+        L.save_session_to_file()
+
+login_instagram()
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -41,7 +52,8 @@ def download_reel(update: Update, context: CallbackContext):
         post_id = url.split("/")[-2]
 
         # Download the Instagram reel
-        L.download_post(L.check_profile_id(post_id), target='reels')
+        post = instaloader.Post.from_shortcode(L.context, post_id)
+        L.download_post(post, target='reels')
 
         # Find the downloaded video file
         video_path = None
