@@ -6,7 +6,7 @@ class Config:
     PORT = 5000 # Example port number for Flask app
     WEBHOOK_URL = 'https://reels-saver.onrender.com/7239382363:AAHBnfK80f8YwU79E5g1LxMAreFXfrtBsbU'
     AUTHORIZED_USERS = [6826870863]
-    INSTAGRAM_USERNAME = 'aric_farhan'
-    INSTAGRAM_PASSWORD = 'Farhan@Reshu'
+    INSTAGRAM_USERNAME = 'xdbaeuonf'
+    INSTAGRAM_PASSWORD = 'xdbaeuonf.com'
 
 
