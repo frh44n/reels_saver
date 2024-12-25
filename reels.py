@@ -25,6 +25,10 @@ def download_reel(update: Update, context: CallbackContext):
         return
 
     try:
+        # Extract the shortcode (post identifier) from the URL
+        shortcode = link.split("/")[-2]  # This extracts the correct shortcode
+        print(f"Shortcode: {shortcode}")  # Debug line to ensure correct shortcode extraction
+
         # Initialize Instaloader
         loader = instaloader.Instaloader()
 
@@ -34,7 +38,7 @@ def download_reel(update: Update, context: CallbackContext):
 
         # Download the reel
         loader.download_post(
-            instaloader.Post.from_shortcode(loader.context, link.split("/")[-2]),
+            instaloader.Post.from_shortcode(loader.context, shortcode),
             target=download_dir,
         )
 
@@ -75,7 +79,7 @@ def start_bot():
     updater.start_polling()
     print("Bot is running...")
 
-# Flask route for webhook (if needed for webhook-based deployment)
+# Flask route for webhook
 @app.route('/webhook', methods=['POST'])
 def webhook():
     json_str = request.get_data().decode('UTF-8')
@@ -85,10 +89,12 @@ def webhook():
 
 # Run Flask app
 def run_flask():
-    port = int(os.environ.get('PORT', 5000))  # Get the PORT environment variable for Render or default to 5000
+    port = int(os.environ.get('PORT', 5000))
     app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    # Run the Telegram bot in a separate thread
-    threading.Thread(target=start_bot).start()
-    run_flask()
+    # Start Flask in a thread and then start the bot
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
+    start_bot()
