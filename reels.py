@@ -63,7 +63,7 @@ def download_reel(update: Update, context: CallbackContext):
 
 # Function to start the bot
 def start_bot():
-    TOKEN = "your_bot_token"
+    TOKEN = "7733448915:AAGxvRU6dyJ9Cvvaxbim9n4oHR8tcm_mKuA"
     updater = Updater(token=TOKEN)
     dispatcher = updater.dispatcher
 
