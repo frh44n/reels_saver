@@ -1,121 +1,70 @@
-from telegram import Update, Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, Dispatcher
-from flask import Flask, request
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 import instaloader
 import os
-import logging
-from database import init_db, get_or_create_user, increment_video_count, create_custom_table, get_all_users
-from config import Config
 
-# Initialize logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize the database
-init_db()
-
-# Set up Instaloader
-L = instaloader.Instaloader()
-
-def login_instagram():
-    session_file = f"/tmp/.instaloader-{Config.INSTAGRAM_USERNAME}"
-    try:
-        L.load_session_from_file(Config.INSTAGRAM_USERNAME, session_file)
-        logger.info("Loaded session from file")
-    except FileNotFoundError:
-        logger.info("Session file not found, logging in")
-        L.login(Config.INSTAGRAM_USERNAME, Config.INSTAGRAM_PASSWORD)
-        L.save_session_to_file(session_file)
-
-login_instagram()
-
-# Initialize Flask app
-app = Flask(__name__)
-
-# Initialize Bot and Dispatcher
-bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
-dispatcher = Dispatcher(bot, None, workers=4, use_context=True)  # Use workers > 0 for webhook mode
-
+# Function to handle the /start command
 def start(update: Update, context: CallbackContext):
-    logger.info(f"Received /start command from {update.message.chat_id}")
     update.message.reply_text(
-        "Welcome to Instagram Reels Downloader Bot!\n"
-        "Please send me the link to the Instagram reel you want to download."
+        "Welcome! Send me an Instagram Reels link, and I'll download it for you. 🎥"
     )
 
+# Function to handle Instagram Reels download
 def download_reel(update: Update, context: CallbackContext):
-    logger.info(f"Received a reel download request from {update.message.chat_id} with URL: {update.message.text}")
+    link = update.message.text
     chat_id = update.message.chat_id
-    url = update.message.text
+
+    # Check if the link is valid
+    if "instagram.com" not in link or "reel" not in link:
+        update.message.reply_text("Please send a valid Instagram Reels link.")
+        return
 
     try:
-        # Extract Instagram post ID from the URL
-        post_id = url.split("/")[-2]
+        # Initialize Instaloader
+        loader = instaloader.Instaloader()
+        # Set download directory
+        download_dir = f"downloads/{chat_id}"
+        os.makedirs(download_dir, exist_ok=True)
 
-        # Download the Instagram reel
-        L.download_post(L.check_profile_id(post_id), target='reels')
+        # Download the reel
+        loader.download_post(
+            instaloader.Post.from_shortcode(loader.context, link.split("/")[-2]),
+            target=download_dir,
+        )
 
-        # Find the downloaded video file
-        for file in os.listdir('reels'):
-            if file.endswith('.mp4'):
-                video_path = os.path.join('reels', file)
+        # Find the downloaded file
+        for file in os.listdir(download_dir):
+            if file.endswith(".mp4"):
+                # Send the file to the user
+                video_path = os.path.join(download_dir, file)
+                context.bot.send_video(chat_id=chat_id, video=open(video_path, "rb"))
                 break
 
-        # Send the video to the user
-        context.bot.send_video(chat_id=chat_id, video=open(video_path, 'rb'))
-
-        # Clean up
-        os.remove(video_path)
-        os.rmdir('reels')
-
-        # Update the user's video count in the database
-        get_or_create_user(chat_id)
-        increment_video_count(chat_id)
+        # Cleanup
+        for file in os.listdir(download_dir):
+            os.remove(os.path.join(download_dir, file))
+        os.rmdir(download_dir)
 
     except Exception as e:
-        logger.error(f"Failed to download reel: {e}")
-        update.message.reply_text(f"Failed to download reel: {e}")
+        update.message.reply_text(f"Error downloading the reel: {str(e)}")
 
-def create_table_command(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
-    if chat_id in Config.AUTHORIZED_USERS:
-        try:
-            create_custom_table()
-            update.message.reply_text("Table created successfully!")
-        except Exception as e:
-            logger.error(f"Failed to create table: {e}")
-            update.message.reply_text(f"Failed to create table: {e}")
-    else:
-        update.message.reply_text("You are not authorized to execute this command.")
+# Main function to set up the bot
+def main():
+    # Replace with your bot token
+    TOKEN = "7733448915:AAGxvRU6dyJ9Cvvaxbim9n4oHR8tcm_mKuA"
 
-def list_users_command(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
-    if chat_id in Config.AUTHORIZED_USERS:
-        try:
-            users = get_all_users()
-            user_list = "\n".join([f"User ID: {user[0]}, Downloads: {user[1]}" for user in users])
-            update.message.reply_text(f"Users:\n{user_list}")
-        except Exception as e:
-            logger.error(f"Failed to list users: {e}")
-            update.message.reply_text(f"Failed to list users: {e}")
-    else:
-        update.message.reply_text("You are not authorized to execute this command.")
+    # Initialize the bot
+    updater = Updater(token=TOKEN)
+    dispatcher = updater.dispatcher
 
-# Add handlers
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("createtable", create_table_command))
-dispatcher.add_handler(CommandHandler("list_users", list_users_command))
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
+    # Handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, download_reel))
 
-@app.route('/' + Config.TELEGRAM_BOT_TOKEN, methods=['POST'])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
-    return 'ok'
+    # Start the bot
+    updater.start_polling()
+    print("Bot is running...")
+    updater.idle()
 
-if __name__ == '__main__':
-    # Set webhook when starting the application
-    WEBHOOK_URL = f"https://reels-saver.onrender.com/{Config.TELEGRAM_BOT_TOKEN}"
-    bot.set_webhook(url=WEBHOOK_URL)
-
-    app.run(host='0.0.0.0', port=Config.PORT)
+if __name__ == "__main__":
+    main()
