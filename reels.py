@@ -1,7 +1,7 @@
 import os
+import yt_dlp as youtube_dl
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-import instaloader
 from flask import Flask, request
 import threading
 
@@ -25,22 +25,20 @@ def download_reel(update: Update, context: CallbackContext):
         return
 
     try:
-        # Extract the shortcode (post identifier) from the URL
-        shortcode = link.split("/")[-2]  # This extracts the correct shortcode
-        print(f"Shortcode: {shortcode}")  # Debug line to ensure correct shortcode extraction
-
-        # Initialize Instaloader
-        loader = instaloader.Instaloader()
-
         # Set download directory based on chat ID
         download_dir = f"downloads/{chat_id}"
         os.makedirs(download_dir, exist_ok=True)
 
+        # Youtube-dl options for Instagram Reels download
+        ydl_opts = {
+            'format': 'best',
+            'outtmpl': os.path.join(download_dir, '%(id)s.%(ext)s'),  # Save with the video ID as filename
+            'noplaylist': True,
+        }
+
         # Download the reel
-        loader.download_post(
-            instaloader.Post.from_shortcode(loader.context, shortcode),
-            target=download_dir,
-        )
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([link])
 
         # Find the downloaded file (video)
         video_file = None
