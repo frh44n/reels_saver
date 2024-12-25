@@ -77,7 +77,7 @@ def send_live_message():
             print(f"Error sending live message: {str(e)}")
         
         # Wait for 1 minute before sending the message again
-        time.sleep(60)
+        time.sleep(300)
 
 # Function to start the bot
 def start_bot():
