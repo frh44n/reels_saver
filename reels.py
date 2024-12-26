@@ -38,6 +38,8 @@ def download_reel(update: Update, context: CallbackContext):
             'format': 'best',
             'outtmpl': os.path.join(download_dir, '%(id)s.%(ext)s'),  # Save with the video ID as filename
             'noplaylist': True,
+            'username': os.environ.get('IG_USERNAME'),  # Use Instagram login credentials from environment variables
+            'password': os.environ.get('IG_PASSWORD'),
         }
 
         # Download the reel
@@ -82,7 +84,7 @@ def send_live_message():
 # Function to start the bot
 def start_bot():
     global bot
-    TOKEN = "7733448915:AAGxvRU6dyJ9Cvvaxbim9n4oHR8tcm_mKuA"
+    TOKEN = os.environ.get("BOT_TOKEN")  # Store the bot token as an environment variable
     updater = Updater(token=TOKEN)
     bot = updater.bot
     dispatcher = updater.dispatcher
