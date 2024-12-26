@@ -1,7 +1,7 @@
 import os
 import yt_dlp as youtube_dl
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from flask import Flask, request
 import threading
 import time
@@ -83,7 +83,6 @@ def send_live_message():
 
 # Function to start the bot
 def start_bot():
-    global bot
     TOKEN = os.environ.get("BOT_TOKEN")  # Store the bot token as an environment variable
     updater = Updater(token=TOKEN)
     bot = updater.bot
